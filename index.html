@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bản đồ số cộng đồng Cao Lãnh</title>
+  <meta name="description" content="Bản đồ tương tác các địa điểm hành chính, dịch vụ công, văn hóa, giáo dục và hỗ trợ cộng đồng tại TP. Cao Lãnh, Đồng Tháp.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            lotus: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+              950: '#052e16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 flex flex-col overflow-hidden transition-colors duration-300">
+
+  <!-- Header -->
+  <header class="h-16 px-4 md:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between z-10 shrink-0 shadow-sm transition-colors duration-300">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-md shadow-emerald-500/20">
+        <i class="fa-solid fa-map-location-dot text-white text-xl"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base md:text-lg tracking-wide text-slate-900 dark:text-white flex items-center gap-1.5">
+          BẢN ĐỒ SỐ CỘNG ĐỒNG CAO LÃNH
+          <span class="hidden md:inline px-2 py-0.5 text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800">
+            Cao Lãnh Smart Map
+          </span>
+        </h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Bản đồ số tiện ích xã hội & Điểm đến văn hóa</p>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center space-x-2 md:space-x-3">
+      <!-- Search Input (Desktop) -->
+      <div class="relative hidden lg:block w-72">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 dark:text-slate-500">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </span>
+        <input 
+          type="text" 
+          id="searchDesktop" 
+          placeholder="Tìm tên địa điểm, địa chỉ..." 
+          class="w-full pl-9 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800 border-0 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all"
+        />
+        <button 
+          id="clearSearchDesktop" 
+          class="hidden absolute inset-y-0 right-0 items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+        >
+          <i class="fa-solid fa-circle-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Theme Toggle -->
+      <button 
+        id="themeToggleBtn" 
+        class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors duration-200"
+        title="Chuyển chế độ Sáng/Tối"
+      >
+        <i class="fa-solid fa-moon dark:hidden"></i>
+        <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
+      </button>
+
+      <!-- Share Map Button -->
+      <button 
+        id="shareMapBtn" 
+        class="hidden md:flex items-center space-x-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 shadow-md shadow-emerald-600/10 hover:shadow-emerald-600/25"
+        title="Sao chép liên kết bản đồ"
+      >
+        <i class="fa-solid fa-share-nodes text-xs"></i>
+        <span>Chia sẻ</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 flex relative overflow-hidden">
+    
+    <!-- Sidebar (Collapsible & Responsive) -->
+    <aside 
+      id="sidebar" 
+      class="fixed inset-y-16 left-0 w-80 md:w-96 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/80 z-20 flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0 shadow-xl md:shadow-none"
+    >
+      <!-- Search Input (Mobile/Tablet) -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800/50 lg:hidden flex space-x-2">
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 dark:text-slate-500">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input 
+            type="text" 
+            id="searchMobile" 
+            placeholder="Tìm địa điểm, địa chỉ..." 
+            class="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-0 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all"
+          />
+          <button 
+            id="clearSearchMobile" 
+            class="hidden absolute inset-y-0 right-0 items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+        <button 
+          id="closeSidebarBtn" 
+          class="md:hidden w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Categories Filter Container -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800/50">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+            <i class="fa-solid fa-filter"></i>
+            Danh mục địa điểm
+          </h2>
+          <button 
+            id="resetFiltersBtn" 
+            class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+          >
+            <i class="fa-solid fa-rotate-left text-[10px]"></i>
+            Đặt lại
+          </button>
+        </div>
+
+        <!-- Filter Grid -->
+        <div class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1" id="categoriesGrid">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Location List Title -->
+      <div class="px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800/30 flex items-center justify-between">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+          <i class="fa-solid fa-list-ul"></i>
+          Kết quả tìm kiếm (<span id="resultsCount">0</span>)
+        </span>
+      </div>
+
+      <!-- Scrollable Location List -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-1" id="locationList">
+        <!-- Populated by JavaScript -->
+      </div>
+    </aside>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div 
+      id="sidebarOverlay" 
+      class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-19 hidden md:hidden transition-opacity duration-300"
+    ></div>
+
+    <!-- Map Container -->
+    <div id="map" class="flex-1 h-full z-0 relative">
+      <!-- Floating Sidebar Toggle Button -->
+      <button 
+        id="toggleSidebarFloatingBtn" 
+        class="absolute top-4 left-4 z-[400] md:hidden w-11 h-11 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-white rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-800/80 flex items-center justify-center transition-all focus:outline-none"
+      >
+        <i class="fa-solid fa-bars text-lg"></i>
+      </button>
+
+      <!-- Locate Me Floating Button -->
+      <button 
+        id="locateMeBtn" 
+        class="absolute bottom-6 right-4 z-[400] w-11 h-11 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-white rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-800/80 flex items-center justify-center transition-all focus:outline-none"
+        title="Vị trí của tôi"
+      >
+        <i class="fa-solid fa-crosshairs text-lg"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- Modal Details & QR Code (Glassmorphism backdrop) -->
+  <div 
+    id="detailsModal" 
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-md hidden opacity-0 transition-opacity duration-300"
+  >
+    <!-- Modal Card -->
+    <div 
+      id="modalCard"
+      class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]"
+    >
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between shrink-0">
+        <div id="modalCategoryBadge" class="flex items-center space-x-1.5 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <!-- Icon and Text loaded dynamically -->
+        </div>
+        <button 
+          id="closeModalBtn" 
+          class="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors"
+        >
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto flex flex-col md:flex-row gap-6">
+        <!-- Text details (Left/Top) -->
+        <div class="flex-1 space-y-4">
+          <div>
+            <h3 id="modalName" class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+              Tên địa điểm
+            </h3>
+            <p id="modalDesc" class="mt-2 text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+              Mô tả chi tiết địa điểm...
+            </p>
+          </div>
+
+          <div class="space-y-2 text-sm font-medium">
+            <!-- Address -->
+            <div class="flex items-start space-x-2.5">
+              <span class="text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot"></i></span>
+              <div>
+                <span class="text-slate-400">Địa chỉ:</span>
+                <p id="modalAddress" class="text-slate-800 dark:text-slate-200"></p>
+              </div>
+            </div>
+            <!-- Phone -->
+            <div class="flex items-center space-x-2.5">
+              <span class="text-slate-400"><i class="fa-solid fa-phone"></i></span>
+              <div>
+                <span class="text-slate-400">Điện thoại:</span>
+                <a id="modalPhoneLink" href="#" class="text-emerald-600 dark:text-emerald-400 hover:underline block font-semibold"></a>
+              </div>
+            </div>
+            <!-- Website -->
+            <div id="modalWebsiteWrapper" class="flex items-center space-x-2.5">
+              <span class="text-slate-400"><i class="fa-solid fa-globe"></i></span>
+              <div>
+                <span class="text-slate-400">Website:</span>
+                <a id="modalWebsiteLink" href="#" target="_blank" class="text-emerald-600 dark:text-emerald-400 hover:underline block font-semibold"></a>
+              </div>
+            </div>
+            <!-- Working Hours -->
+            <div id="modalHoursWrapper" class="flex items-center space-x-2.5">
+              <span class="text-slate-400"><i class="fa-solid fa-clock"></i></span>
+              <div>
+                <span class="text-slate-400">Giờ hoạt động:</span>
+                <p id="modalHours" class="text-slate-800 dark:text-slate-200"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QR Code section (Right/Bottom) -->
+        <div class="w-full md:w-48 flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/50 dark:border-slate-800/40 relative shrink-0">
+          <div class="absolute -top-3 left-4 px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+            Mã QR địa điểm
+          </div>
+          <!-- QR target container -->
+          <div id="qrcodeContainer" class="p-2 bg-white rounded-lg shadow-sm border border-slate-100 flex items-center justify-center w-[156px] h-[156px]">
+            <!-- QRCode.js puts canvas/img here -->
+          </div>
+          <p class="text-[10px] text-center text-slate-400 dark:text-slate-500 mt-2.5 font-bold leading-normal">
+            Quét mã để chia sẻ<br>hoặc xem trên điện thoại
+          </p>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800/50 shrink-0 flex flex-col sm:flex-row justify-between gap-3">
+        <button 
+          id="copyShareLinkBtn" 
+          class="flex items-center justify-center space-x-1.5 px-4 py-2 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+        >
+          <i class="fa-solid fa-copy"></i>
+          <span>Sao chép liên kết</span>
+        </button>
+
+        <div class="flex items-center space-x-3 shrink-0">
+          <a 
+            id="googleMapsDirectionBtn" 
+            href="#" 
+            target="_blank" 
+            class="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-600/10 hover:shadow-emerald-600/25 transition-all"
+          >
+            <i class="fa-solid fa-diamond-turn-right"></i>
+            <span>Chỉ đường (Maps)</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet & QRCode JS libraries -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Application Logic -->
+  <script src="action.js"></script>
+</body>
+</html>
